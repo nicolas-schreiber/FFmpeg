@@ -291,6 +291,8 @@ void av_log_set_callback(void (*callback)(void*, int, const char*, va_list));
 void av_log_default_callback(void *avcl, int level, const char *fmt,
                              va_list vl);
 
+void av_log_set_formatted_callback(void (*)(void*, int, const char*));
+
 /**
  * Return the context name
  *

@@ -341,6 +341,8 @@ end:
 static void (*av_log_callback)(void*, int, const char*, va_list) =
     av_log_default_callback;
 
+static void (*av_log_formatted_callback)(void*, int, const char*) = NULL;
+
 void av_log(void* avcl, int level, const char *fmt, ...)
 {
     AVClass* avc = avcl ? *(AVClass **) avcl : NULL;
@@ -358,6 +360,17 @@ void av_vlog(void* avcl, int level, const char *fmt, va_list vl)
     void (*log_callback)(void*, int, const char*, va_list) = av_log_callback;
     if (log_callback)
         log_callback(avcl, level, fmt, vl);
+
+    void (*log_formatted_callback)(void*, int, const char*) = av_log_formatted_callback;
+
+    if(log_formatted_callback) {
+        static int print_prefix = 1;
+        char line[1024];
+
+        av_log_format_line(avcl, level, fmt, vl, line, sizeof(line), &print_prefix);
+
+        log_formatted_callback(avcl, level, line);
+    }
 }
 
 int av_log_get_level(void)
@@ -383,6 +396,11 @@ int av_log_get_flags(void)
 void av_log_set_callback(void (*callback)(void*, int, const char*, va_list))
 {
     av_log_callback = callback;
+}
+
+void av_log_set_formatted_callback(void (*callback)(void*, int, const char*))
+{
+    av_log_formatted_callback = callback;
 }
 
 static void missing_feature_sample(int sample, void *avc, const char *msg,
