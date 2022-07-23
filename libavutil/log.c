@@ -406,6 +406,9 @@ end:
 static void (*av_log_callback)(void*, int, const char*, va_list) =
     av_log_default_callback;
 
+static void (*av_log_formatted_callback)(void*, int, const char*) = NULL;
+static void (*av_log_formatted_filtered_callback)(void*, int, const char*) = NULL;
+
 void av_log(void* avcl, int level, const char *fmt, ...)
 {
     va_list vl;
@@ -432,6 +435,22 @@ void av_vlog(void* avcl, int level, const char *fmt, va_list vl)
         level += *(int *) (((uint8_t *) avcl) + avc->log_level_offset_offset);
     if (log_callback)
         log_callback(avcl, level, fmt, vl);
+
+    void (*log_formatted_callback)(void*, int, const char*) = av_log_formatted_callback;
+    void (*log_formatted_filtered_callback)(void*, int, const char*) = av_log_formatted_filtered_callback;
+
+    if(log_formatted_callback || (log_formatted_filtered_callback && level <= av_log_level)) {
+        static int print_prefix = 1;
+        char line[1024];
+
+        av_log_format_line(avcl, level, fmt, vl, line, sizeof(line), &print_prefix);
+
+        if(log_formatted_callback)
+            log_formatted_callback(avcl, level, line);
+
+        if(log_formatted_filtered_callback && level <= av_log_level)
+            log_formatted_filtered_callback(avcl, level, line);
+    }
 }
 
 int av_log_get_level(void)
@@ -457,6 +476,16 @@ int av_log_get_flags(void)
 void av_log_set_callback(void (*callback)(void*, int, const char*, va_list))
 {
     av_log_callback = callback;
+}
+
+void av_log_set_formatted_callback(void (*callback)(void*, int, const char*))
+{
+    av_log_formatted_callback = callback;
+}
+
+void av_log_set_formatted_filtered_callback(void (*callback)(void*, int, const char*))
+{
+    av_log_formatted_filtered_callback = callback;
 }
 
 static void missing_feature_sample(int sample, void *avc, const char *msg,
